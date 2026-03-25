@@ -636,6 +636,135 @@ body {
   border: 1px inset #666;
 }
 
+/* ── Screen shake ── */
+@keyframes screenShake {
+  0%, 100% { transform: translate(-50%, -50%); }
+  10% { transform: translate(-50.5%, -50.3%); }
+  20% { transform: translate(-49.5%, -50.5%); }
+  30% { transform: translate(-50.3%, -49.5%); }
+  40% { transform: translate(-49.7%, -50.4%); }
+  50% { transform: translate(-50.4%, -49.7%); }
+  60% { transform: translate(-49.6%, -50.2%); }
+  70% { transform: translate(-50.2%, -49.8%); }
+  80% { transform: translate(-49.8%, -50.3%); }
+  90% { transform: translate(-50.3%, -49.6%); }
+}
+
+.window.shaking {
+  animation: screenShake 0.4s ease-in-out;
+}
+
+/* ── Curse meter pulse ── */
+@keyframes cursePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.curse-meter.danger {
+  animation: cursePulse 0.8s ease-in-out infinite;
+  font-size: 13px;
+}
+
+/* ── Inbox row slide-in ── */
+@keyframes slideIn {
+  0% { transform: translateX(-20px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.inbox-row.new-arrival {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* ── NEW badge ── */
+.new-badge {
+  background: #ff0000;
+  color: white;
+  font-size: 9px;
+  padding: 1px 4px;
+  margin-left: 6px;
+  font-weight: bold;
+  animation: blink 0.8s step-end infinite;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* ── Send animation ── */
+@keyframes sendFly {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.8) translateY(-30px); opacity: 0.6; }
+  100% { transform: scale(0.3) translateY(-100px); opacity: 0; }
+}
+
+.sending-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.7);
+  z-index: 55;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.sending-overlay.active {
+  display: flex;
+}
+
+.sending-overlay .send-icon {
+  animation: sendFly 0.8s ease-in forwards;
+}
+
+/* ── Confetti ── */
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 70;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: -10px;
+  animation: confettiFall 2s ease-in forwards;
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── Clippy ── */
+.clippy {
+  display: none;
+  position: absolute;
+  bottom: 40px;
+  right: 10px;
+  z-index: 80;
+  background: #ffffcc;
+  border: 2px solid #999;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  max-width: 220px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.clippy.active {
+  display: block;
+  animation: slideIn 0.3s ease-out;
+}
+
+.clippy::before {
+  content: '&#128206;';
+  font-size: 24px;
+  display: block;
+  margin-bottom: 6px;
+}
+
 /* scrollbar */
 .inbox-table::-webkit-scrollbar,
 .email-body::-webkit-scrollbar,
@@ -677,9 +806,9 @@ body {
   <div class="title-bar">
     <span>&#128231; ChainMail Online - <span id="currentYear">1995</span></span>
     <div class="title-bar-buttons">
-      <button>_</button>
-      <button>&#9744;</button>
-      <button>X</button>
+      <button onclick="playClickSound()">_</button>
+      <button onclick="playClickSound()">&#9744;</button>
+      <button onclick="titleBarClose()">X</button>
     </div>
   </div>
 
@@ -760,6 +889,17 @@ body {
   </div>
 </div>
 
+<!-- Sending animation -->
+<div class="sending-overlay" id="sendingOverlay">
+  <span class="send-icon">&#9993;</span>
+</div>
+
+<!-- Confetti -->
+<div class="confetti-container" id="confettiContainer"></div>
+
+<!-- Clippy -->
+<div class="clippy" id="clippy" onclick="dismissClippy()"></div>
+
 <!-- Year banner -->
 <div class="year-banner" id="yearBanner"></div>
 
@@ -772,6 +912,199 @@ body {
 </div>
 
 <script>
+// ── Sound System (Web Audio API) ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, duration, type = 'square', volume = 0.15) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playMailSound() {
+  // "You've got mail" chime: ascending three-note
+  playTone(523, 0.15, 'sine', 0.2);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.2), 150);
+  setTimeout(() => playTone(784, 0.25, 'sine', 0.2), 300);
+}
+
+function playClickSound() {
+  playTone(800, 0.05, 'square', 0.08);
+}
+
+function playCurseSound() {
+  playTone(200, 0.3, 'sawtooth', 0.12);
+  setTimeout(() => playTone(150, 0.4, 'sawtooth', 0.1), 200);
+}
+
+function playLuckSound() {
+  playTone(600, 0.1, 'sine', 0.15);
+  setTimeout(() => playTone(800, 0.1, 'sine', 0.15), 100);
+  setTimeout(() => playTone(1000, 0.1, 'sine', 0.15), 200);
+  setTimeout(() => playTone(1200, 0.2, 'sine', 0.15), 300);
+}
+
+function playSendSound() {
+  // Whoosh
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.4);
+}
+
+function playYearSound() {
+  // Fanfare
+  [523, 659, 784, 1047].forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.2, 'sine', 0.18), i * 150);
+  });
+}
+
+function playDialupSound() {
+  ensureAudio();
+  // Simulated dial-up noise burst
+  const bufferSize = audioCtx.sampleRate * 0.8;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    const t = i / audioCtx.sampleRate;
+    data[i] = (Math.sin(t * 1200 * Math.PI * 2) * 0.3 +
+               Math.sin(t * 2100 * Math.PI * 2) * 0.2 +
+               (Math.random() - 0.5) * 0.15) *
+               Math.max(0, 1 - t * 1.2);
+  }
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  src.buffer = buffer;
+  gain.gain.value = 0.12;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+}
+
+function playGameOverSound() {
+  [523, 466, 415, 349].forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.3, 'sine', 0.2), i * 200);
+  });
+}
+
+// ── Confetti System ──
+function spawnConfetti() {
+  const container = document.getElementById('confettiContainer');
+  const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff6600', '#ff99cc'];
+  for (let i = 0; i < 30; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = (Math.random() * 100) + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    piece.style.animationDuration = (1.5 + Math.random()) + 's';
+    const shape = Math.random();
+    if (shape < 0.33) {
+      piece.style.borderRadius = '50%';
+    } else if (shape < 0.66) {
+      piece.style.width = '6px';
+      piece.style.height = '12px';
+    }
+    container.appendChild(piece);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 2500);
+}
+
+// ── Clippy ──
+const CLIPPY_MESSAGES = [
+  "It looks like you're writing a chain letter! Would you like help?",
+  "Did you know? 94% of chain letters are completely made up. The other 6% are CURSED.",
+  "You should probably forward that. Just saying.",
+  "I see you're ignoring a chain letter. Bold move.",
+  "Fun fact: Bill Gates has never paid anyone to forward an email.",
+  "Your curse level is getting high. Have you tried forwarding more letters?",
+  "Remember: friends don't let friends break chains.",
+  "I'm not saying the curse is real, but your Tamagotchi just died...",
+  "Pro tip: Forward to EVERYONE. What's the worst that could happen?",
+  "If you break this chain, I'll be very disappointed. Virtually.",
+];
+
+let clippyTimeout = null;
+
+function maybeShowClippy() {
+  if (state.gameOver) return;
+  if (Math.random() < 0.12) {
+    const msg = CLIPPY_MESSAGES[Math.floor(Math.random() * CLIPPY_MESSAGES.length)];
+    const clippy = document.getElementById('clippy');
+    clippy.innerHTML = '<span style="font-size:24px;">&#128206;</span><br>' + msg;
+    clippy.classList.add('active');
+    clippyTimeout = setTimeout(dismissClippy, 6000);
+  }
+}
+
+function dismissClippy() {
+  document.getElementById('clippy').classList.remove('active');
+  if (clippyTimeout) clearTimeout(clippyTimeout);
+}
+
+// ── Konami Code Easter Egg ──
+const KONAMI = [38,38,40,40,37,39,37,39,66,65];
+let konamiPos = 0;
+
+document.addEventListener('keydown', (e) => {
+  if (e.keyCode === KONAMI[konamiPos]) {
+    konamiPos++;
+    if (konamiPos === KONAMI.length) {
+      konamiPos = 0;
+      triggerDancingBaby();
+    }
+  } else {
+    konamiPos = 0;
+  }
+});
+
+function triggerDancingBaby() {
+  playLuckSound();
+  state.stamps += 10;
+  state.luck = Math.min(100, state.luck + 20);
+  state.score += 500;
+  updateUI();
+  saveGame();
+
+  const popup = document.getElementById('eventPopup');
+  document.getElementById('eventTitle').textContent = '&#127775; SECRET FOUND!';
+  document.getElementById('eventIcon').innerHTML = '&#128118;&#127926;';
+  document.getElementById('eventText').textContent =
+    'You found the Dancing Baby! +10 stamps, +20 luck, +500 score. ' +
+    'Oogachaka oogachaka oogachaka...';
+  popup.classList.add('active');
+  spawnConfetti();
+}
+
+// ── Screen shake ──
+function shakeScreen() {
+  const win = document.getElementById('gameWindow');
+  win.classList.add('shaking');
+  setTimeout(() => win.classList.remove('shaking'), 400);
+}
+
 // ── Game State ──
 let state = {
   year: 1995,
@@ -932,7 +1265,7 @@ const LETTER_TEMPLATES = [
         threat: "If you don't send this to 15 people, the clown will visit you tonight. A girl named Carla in Florida didn't forward it and she was never seen again.",
         promise: "Forward this to 15 people and you will hear good news by midnight!",
         fwdCount: 8,
-        curseAmount: 25,
+        curseAmount: 18,
         luckBonus: 8,
       },
     ],
@@ -968,7 +1301,7 @@ const LETTER_TEMPLATES = [
         threat: "A man in Ohio broke this chain in 1987 and lost his job the next day. A woman in Texas broke it and her car was totaled. DO NOT BREAK THIS CHAIN.",
         promise: "Send this to 20 people and something wonderful will happen to you at 11:11 PM tonight. A man in Florida sent it to 30 people and won $50,000 in the lottery the next week.",
         fwdCount: 10,
-        curseAmount: 30,
+        curseAmount: 22,
         luckBonus: 25,
       },
     ],
@@ -1010,6 +1343,10 @@ const GOOD_EVENTS = [
   { icon: "&#127918;", text: "Your friend is letting you borrow their N64 for the whole weekend!" },
   { icon: "&#9733;", text: "Your GeoCities page was featured in a webring!" },
   { icon: "&#128516;", text: "Snow day tomorrow! School is cancelled!" },
+  { icon: "&#128236;", text: "Your grandma sent you a birthday card with stamps inside! +3 bonus stamps!" },
+  { icon: "&#127911;", text: "You won a call-in contest on the radio! Free concert tickets!" },
+  { icon: "&#128187;", text: "Your parents upgraded to a 56k modem! Everything loads faster now!" },
+  { icon: "&#128142;", text: "You found a limited edition holographic Pokemon card in a pack!" },
 ];
 
 // ── Sender screen names ──
@@ -1039,9 +1376,14 @@ function initDialup() {
   const textEl = document.getElementById('dialupText');
   const progressEl = document.getElementById('progressFill');
   let i = 0;
+  let dialupPlayed = false;
 
   function nextLine() {
     if (i < lines.length) {
+      if (i === 2 && !dialupPlayed) {
+        dialupPlayed = true;
+        try { playDialupSound(); } catch(e) {}
+      }
       textEl.innerHTML += lines[i] + '<br>';
       progressEl.style.width = ((i + 1) / lines.length * 100) + '%';
       i++;
@@ -1049,12 +1391,14 @@ function initDialup() {
     } else {
       textEl.innerHTML += '<span class="blink">_</span>';
       document.getElementById('startBtn').style.display = 'inline-block';
+      try { playMailSound(); } catch(e) {}
     }
   }
   nextLine();
 }
 
 function startGame() {
+  playClickSound();
   document.getElementById('introScreen').style.display = 'none';
   document.getElementById('gameWindow').style.display = 'flex';
 
@@ -1146,12 +1490,13 @@ function renderInbox() {
   const unread = state.emails.filter(e => !e.read).length;
   document.getElementById('unreadCount').textContent = unread;
 
-  table.innerHTML = state.emails.map(email => {
+  table.innerHTML = state.emails.map((email, idx) => {
     const icon = email.read ? '&#128233;' : '&#128232;';
-    const cls = `inbox-row${email.read ? '' : ' unread'}${email.replied ? ' replied' : ''}`;
-    return `<div class="${cls}" onclick="openEmail(${email.id})">
+    const badge = email.read ? '' : '<span class="new-badge">NEW!</span>';
+    const cls = `inbox-row${email.read ? '' : ' unread'}${email.replied ? ' replied' : ''}${!email.read && idx < 3 ? ' new-arrival' : ''}`;
+    return `<div class="${cls}" onclick="openEmail(${email.id})" style="${!email.read && idx < 3 ? 'animation-delay:'+idx*0.1+'s' : ''}">
       <span class="icon">${icon}</span>
-      <span>${email.from}</span>
+      <span>${email.from}${badge}</span>
       <span>${email.subject}</span>
       <span class="date">${email.date}</span>
     </div>`;
@@ -1159,6 +1504,7 @@ function renderInbox() {
 }
 
 function openEmail(id) {
+  playClickSound();
   const email = state.emails.find(e => e.id === id);
   if (!email) return;
 
@@ -1267,14 +1613,26 @@ function sendForward() {
   email.replied = true;
 
   closeForwardDialog();
-  backToInbox();
-  updateUI();
-  saveGame();
+  playSendSound();
 
-  // Maybe trigger good event
-  if (Math.random() < 0.4) {
-    setTimeout(() => triggerEvent('good'), 500);
-  }
+  // Show send animation
+  const overlay = document.getElementById('sendingOverlay');
+  overlay.classList.add('active');
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    overlay.querySelector('.send-icon').style.animation = 'none';
+    void overlay.querySelector('.send-icon').offsetHeight;
+    overlay.querySelector('.send-icon').style.animation = '';
+    backToInbox();
+    updateUI();
+    saveGame();
+
+    // Maybe trigger good event
+    if (Math.random() < 0.4) {
+      setTimeout(() => triggerEvent('good'), 300);
+    }
+    maybeShowClippy();
+  }, 800);
 
   // Grant bonus stamps
   state.stamps += Math.floor(count / 3);
@@ -1286,6 +1644,8 @@ function breakChain() {
   const email = state.currentEmail;
   if (!email) return;
 
+  playCurseSound();
+  shakeScreen();
   state.chainsBroken++;
   state.curse = Math.min(100, state.curse + email.body.curseAmount);
   state.luck = Math.max(0, state.luck - Math.floor(email.body.curseAmount / 2));
@@ -1302,6 +1662,7 @@ function breakChain() {
     setTimeout(() => triggerEvent('bad'), 500);
   }
 
+  maybeShowClippy();
   checkProgression();
 }
 
@@ -1316,9 +1677,13 @@ function triggerEvent(type) {
   document.getElementById('eventPopup').classList.add('active');
 
   if (type === 'bad') {
+    playCurseSound();
+    shakeScreen();
     state.score -= 50;
     state.stamps = Math.max(0, state.stamps - 1);
   } else {
+    playLuckSound();
+    spawnConfetti();
     state.score += 100;
     state.stamps += 2;
   }
@@ -1337,8 +1702,9 @@ function checkProgression() {
   if (state.year < 1999 && handled >= thresholds[state.year]) {
     state.year++;
     state.contacts = ALL_CONTACTS.filter(c => c.year <= state.year);
-    state.stamps += 5;
+    state.stamps += 5 + (state.year - 1995); // More stamps in later years
     generateNewLetters(3 + (state.year - 1995));
+    playMailSound();
     renderInbox();
     showYearBanner(state.year);
     updateUI();
@@ -1365,11 +1731,14 @@ function showYearBanner(year) {
   banner.innerHTML = messages[year] || year;
   banner.classList.add('active');
   document.getElementById('currentYear').textContent = year;
+  playYearSound();
+  spawnConfetti();
   setTimeout(() => banner.classList.remove('active'), 2500);
 }
 
 function endGame(reason) {
   state.gameOver = true;
+  playGameOverSound();
   const go = document.getElementById('gameOver');
   const title = document.getElementById('gameOverTitle');
   const score = document.getElementById('gameOverScore');
@@ -1400,18 +1769,22 @@ function restartGame() {
 }
 
 function showInbox() {
+  playClickSound();
   document.getElementById('emailView').classList.remove('active');
   document.getElementById('addressBookView').classList.remove('active');
   document.getElementById('inboxView').style.display = 'block';
   setActiveToolbarBtn('btnInbox');
+  document.querySelector('.address-book-header').textContent = '&#128209; My Buddy List / Address Book';
   renderInbox();
 }
 
 function showAddressBook() {
+  playClickSound();
   document.getElementById('emailView').classList.remove('active');
   document.getElementById('inboxView').style.display = 'none';
   document.getElementById('addressBookView').classList.add('active');
   setActiveToolbarBtn('btnAddressBook');
+  document.querySelector('.address-book-header').textContent = '&#128209; My Buddy List / Address Book';
 
   const list = document.getElementById('addressBookList');
   list.innerHTML = state.contacts.map(c => `
@@ -1423,6 +1796,7 @@ function showAddressBook() {
 }
 
 function showStats() {
+  playClickSound();
   document.getElementById('emailView').classList.remove('active');
   document.getElementById('inboxView').style.display = 'none';
   document.getElementById('addressBookView').classList.remove('active');
@@ -1462,8 +1836,40 @@ function updateUI() {
   document.getElementById('stampCount').textContent = '&#128236; Stamps: ' + state.stamps;
   document.getElementById('currentYear').textContent = state.year;
 
+  // Curse meter danger state
+  const curseMeter = document.getElementById('curseMeter');
+  if (state.curse >= 70) {
+    curseMeter.classList.add('danger');
+  } else {
+    curseMeter.classList.remove('danger');
+  }
+
   const vc = 482 + state.chainsKept * 37 + state.lettersReceived * 12;
   document.getElementById('visitorCount').textContent = String(vc).padStart(6, '0');
+}
+
+// ── Title bar close easter egg ──
+let closeAttempts = 0;
+const CLOSE_MESSAGES = [
+  "You can't leave! You have unread chain letters!",
+  "Closing this window will result in 7 years of bad luck. Are you sure? (You can't be sure.)",
+  "Nice try. The chains will not release you.",
+  "ERROR: Cannot close. The curse is binding.",
+  "You think you can just... leave? After everything we've been through?",
+  "ALERT: Your internet provider has been notified of your attempt to leave.",
+];
+
+function titleBarClose() {
+  playClickSound();
+  closeAttempts++;
+  if (closeAttempts >= CLOSE_MESSAGES.length) {
+    closeAttempts = 0;
+  }
+  const popup = document.getElementById('eventPopup');
+  document.getElementById('eventTitle').textContent = 'ChainMail Online';
+  document.getElementById('eventIcon').innerHTML = '&#9888;';
+  document.getElementById('eventText').textContent = CLOSE_MESSAGES[closeAttempts];
+  popup.classList.add('active');
 }
 
 // ── Init ──
