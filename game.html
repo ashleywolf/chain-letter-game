@@ -765,6 +765,184 @@ body {
   margin-bottom: 6px;
 }
 
+/* ── Pop-up ads ── */
+.popup-ad {
+  position: absolute;
+  z-index: 65;
+  background: var(--aol-toolbar);
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+  min-width: 260px;
+  max-width: 320px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  animation: slideIn 0.2s ease-out;
+}
+
+.popup-ad .title-bar {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.popup-ad-body {
+  background: white;
+  padding: 15px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.popup-ad-body .ad-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.popup-ad-body .ad-cta {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 20px;
+  background: #ff6600;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  border: 2px outset #ff6600;
+  cursor: pointer;
+  animation: blink 1.5s step-end infinite;
+}
+
+/* ── Cursor trail ── */
+.sparkle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  font-size: 12px;
+  animation: sparkleFade 0.6s ease-out forwards;
+}
+
+@keyframes sparkleFade {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.3) translateY(-15px); }
+}
+
+/* ── AIM Buddy list ── */
+.buddy-group-header {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+  cursor: pointer;
+  user-select: none;
+}
+
+.buddy-entry {
+  padding: 3px 8px 3px 20px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.buddy-entry:hover {
+  background: #e8e8ff;
+}
+
+.buddy-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.buddy-status-dot.online { background: #00cc00; }
+.buddy-status-dot.away { background: #ffcc00; }
+.buddy-status-dot.offline { background: #999; }
+
+.buddy-sn {
+  font-weight: bold;
+  color: var(--aol-blue);
+  font-size: 12px;
+}
+
+.buddy-sn.away-sn { color: #999; }
+.buddy-sn.offline-sn { color: #ccc; }
+
+.buddy-away-msg {
+  font-size: 10px;
+  color: #888;
+  font-style: italic;
+  margin-left: 14px;
+  padding: 0 0 4px 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* ── Disconnect screen ── */
+.disconnect-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: 'Courier New', monospace;
+}
+
+.disconnect-screen.active {
+  display: flex;
+}
+
+.disconnect-screen .static-noise {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.03) 0px,
+    rgba(0,0,0,0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  animation: staticFlicker 0.1s steps(2) infinite;
+}
+
+@keyframes staticFlicker {
+  0% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+  100% { opacity: 0.9; }
+}
+
+.disconnect-screen .disconnect-msg {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  font-size: 18px;
+}
+
+.disconnect-screen .disconnect-msg .big-icon {
+  font-size: 64px;
+  margin-bottom: 15px;
+  display: block;
+}
+
+/* ── Non-chain email styling ── */
+.inbox-row.junk-mail {
+  color: #666;
+}
+
+.inbox-row.junk-mail .icon {
+  opacity: 0.6;
+}
+
+.inbox-row.reaction-mail {
+  font-style: italic;
+}
+
 /* scrollbar */
 .inbox-table::-webkit-scrollbar,
 .email-body::-webkit-scrollbar,
@@ -820,6 +998,7 @@ body {
     <button id="btnInbox" class="active" onclick="showInbox()">&#128229; Inbox</button>
     <button id="btnAddressBook" onclick="showAddressBook()">&#128209; Address Book</button>
     <button id="btnStats" onclick="showStats()">&#128202; My Stats</button>
+    <button id="btnSparkle" onclick="toggleSparkle()" style="font-size:10px;">&#10024; Sparkle</button>
     <span style="flex:1"></span>
     <span class="visitor-counter">Visitors: <span id="visitorCount">000482</span></span>
   </div>
@@ -899,6 +1078,19 @@ body {
 
 <!-- Clippy -->
 <div class="clippy" id="clippy" onclick="dismissClippy()"></div>
+
+<!-- Pop-up ad container -->
+<div id="popupAdContainer"></div>
+
+<!-- Disconnect screen -->
+<div class="disconnect-screen" id="disconnectScreen">
+  <div class="static-noise"></div>
+  <div class="disconnect-msg">
+    <span class="big-icon">&#128222;</span>
+    <div id="disconnectText">CONNECTION LOST</div>
+    <div style="margin-top:15px; font-size:12px;" id="disconnectSubtext"></div>
+  </div>
+</div>
 
 <!-- Year banner -->
 <div class="year-banner" id="yearBanner"></div>
@@ -1007,6 +1199,310 @@ function playGameOverSound() {
   [523, 466, 415, 349].forEach((f, i) => {
     setTimeout(() => playTone(f, 0.3, 'sine', 0.2), i * 200);
   });
+}
+
+function playDoorOpen() {
+  playTone(880, 0.08, 'sine', 0.1);
+  setTimeout(() => playTone(1100, 0.1, 'sine', 0.12), 80);
+}
+
+function playDoorClose() {
+  playTone(1100, 0.08, 'sine', 0.1);
+  setTimeout(() => playTone(880, 0.12, 'sine', 0.08), 80);
+}
+
+function playStaticSound() {
+  ensureAudio();
+  const bufferSize = audioCtx.sampleRate * 0.3;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() - 0.5) * 0.4;
+  }
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  src.buffer = buffer;
+  gain.gain.value = 0.15;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+}
+
+// ── Cursor Sparkle Trail ──
+let sparkleEnabled = false;
+const SPARKLE_CHARS = ['&#10024;', '&#9733;', '&#10022;', '&#183;', '&#42;'];
+const SPARKLE_COLORS = ['#ff0', '#f0f', '#0ff', '#f90', '#9f0', '#f09', '#fff'];
+
+function toggleSparkle() {
+  sparkleEnabled = !sparkleEnabled;
+  const btn = document.getElementById('btnSparkle');
+  btn.classList.toggle('active', sparkleEnabled);
+  playClickSound();
+}
+
+let sparkleThrottle = 0;
+document.addEventListener('mousemove', (e) => {
+  if (!sparkleEnabled) return;
+  const now = Date.now();
+  if (now - sparkleThrottle < 50) return;
+  sparkleThrottle = now;
+
+  const spark = document.createElement('div');
+  spark.className = 'sparkle';
+  spark.innerHTML = SPARKLE_CHARS[Math.floor(Math.random() * SPARKLE_CHARS.length)];
+  spark.style.left = (e.clientX + (Math.random() - 0.5) * 10) + 'px';
+  spark.style.top = (e.clientY + (Math.random() - 0.5) * 10) + 'px';
+  spark.style.color = SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)];
+  document.body.appendChild(spark);
+  setTimeout(() => spark.remove(), 600);
+});
+
+// ── Pop-up Ads ──
+const POPUP_ADS = [
+  { title: "CONGRATULATIONS!!!", icon: "&#127881;", text: "YOU are the <b>1,000,000th</b> visitor!!<br>Click here to claim your PRIZE!", cta: "CLAIM NOW!" },
+  { title: "FREE DOWNLOAD", icon: "&#128190;", text: "Your computer is SLOW!<br>Download SpeedBooster2000 FREE!", cta: "DOWNLOAD" },
+  { title: "WARNING!", icon: "&#9888;", text: "Your computer may be INFECTED!<br>Run a FREE virus scan NOW!", cta: "SCAN NOW" },
+  { title: "Amazing Deal!", icon: "&#128176;", text: "Make $5,000/week from HOME!<br>This mom discovered one weird trick!", cta: "LEARN MORE" },
+  { title: "PUNCH THE MONKEY", icon: "&#128053;", text: "Punch the monkey to win a FREE iPod!!<br>(Just kidding, iPods don't exist yet)", cta: "PUNCH!" },
+  { title: "FREE SCREENSAVER", icon: "&#127752;", text: "Download the AWESOME 3D Pipes screensaver!<br>Only 2.3 MB! (45 min on 28.8k)", cta: "GET IT FREE" },
+  { title: "HOT CHAT!", icon: "&#128172;", text: "Cool teens in YOUR AREA<br>want to chat on AOL!!", cta: "CHAT NOW" },
+  { title: "X10 Camera", icon: "&#128247;", text: "SEE what's happening at home!<br>Wireless camera only $49.99!", cta: "ORDER NOW" },
+];
+
+let activePopups = 0;
+const MAX_POPUPS = 3;
+
+function maybeShowPopupAd() {
+  if (state.gameOver || activePopups >= MAX_POPUPS) return;
+  if (Math.random() < 0.15) {
+    spawnPopupAd();
+  }
+}
+
+function spawnPopupAd() {
+  const ad = POPUP_ADS[Math.floor(Math.random() * POPUP_ADS.length)];
+  const container = document.getElementById('popupAdContainer');
+  const div = document.createElement('div');
+  div.className = 'popup-ad';
+  const xOff = 50 + Math.random() * 300 + activePopups * 30;
+  const yOff = 80 + Math.random() * 200 + activePopups * 25;
+  div.style.left = xOff + 'px';
+  div.style.top = yOff + 'px';
+
+  let dodged = false;
+  div.innerHTML = `
+    <div class="title-bar">
+      <span>${ad.title}</span>
+      <div class="title-bar-buttons"><button class="popup-close-btn">X</button></div>
+    </div>
+    <div class="popup-ad-body">
+      <div class="ad-icon">${ad.icon}</div>
+      <div>${ad.text}</div>
+      <div class="ad-cta">${ad.cta}</div>
+    </div>
+  `;
+
+  const closeBtn = div.querySelector('.popup-close-btn');
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!dodged) {
+      dodged = true;
+      div.style.left = (parseInt(div.style.left) + 40 + Math.random() * 60) + 'px';
+      div.style.top = (parseInt(div.style.top) + 20 + Math.random() * 40) + 'px';
+      return;
+    }
+    playClickSound();
+    state.score += 5;
+    updateUI();
+    div.remove();
+    activePopups--;
+  });
+
+  container.appendChild(div);
+  activePopups++;
+}
+
+// ── AIM Away Messages ──
+const AWAY_MESSAGES = [
+  "~*~i WaLk A lOnElY rOaD~*~",
+  "brb dinner",
+  "DoNt IM mE iM bUsY",
+  "*~if u cAnT hAnDlE mE aT mY wOrSt~*",
+  "a/s/l?",
+  "IM me I'm bored lol",
+  "&#9835; EvErY nIgHt In My DrEaMs &#9835;",
+  "away... leave a msg",
+  "~*~tRuE fRiEnDs StAb YoU iN tHe FrOnT~*~",
+  "doin homework... jk lol",
+  "if ur reading this, IM me!!",
+  "&#9829; taken &#9829;",
+  "school sux",
+  "~*~AnGeL~*~ dont mess w/ me",
+  "downloading mp3s brb",
+  "on the phone cant talk",
+  "&#9835; I want it that way &#9835;",
+  "bbl gotta feed my neopets",
+  "ugh parents r so annoying",
+  "~*~*~LiVe LaUgH lOvE~*~*~",
+];
+
+function getBuddyStatus(contact) {
+  // Deterministic-ish status based on contact name + game state
+  const hash = contact.sn.length * 7 + state.lettersReceived * 3;
+  const roll = (hash + contact.sn.charCodeAt(0)) % 10;
+  if (roll < 5) return 'online';
+  if (roll < 8) return 'away';
+  return 'offline';
+}
+
+function getBuddyAwayMsg(contact) {
+  const idx = (contact.sn.charCodeAt(0) + contact.sn.length + state.year) % AWAY_MESSAGES.length;
+  return AWAY_MESSAGES[idx];
+}
+
+// ── Email Signatures ──
+const EMAIL_SIGNATURES = [
+  "\n\n---\n~*~*~LiVe LaUgH lOvE~*~*~\nAOL Keyword: friendship",
+  "\n\n---\n@}->-- a rose 4 u --<-{@\nGet your FREE email at hotmail.com!",
+  "\n\n---\n*~*~AnGeL bAbY~*~*\nThis email scanned by Norton AntiVirus 4.0",
+  "\n\n---\n     (\\__/)\n     (='.'=)   ~*~bUnNy LoVeR~*~\n     (\")_(\")\nvisit my geocities page!",
+  "\n\n---\n:) :) :) :) :) :) :) :) :)\nFoRwArD tHiS tO eVeRyOnE yOu KnOw!!",
+  "\n\n---\nPowered by AOL 3.0\nKeyword: cool stuff\n1-800-AOL-HELP",
+  "\n\n---\n~*~BeStFrIeNdS 4 EvEr~*~\n[if u copy this into ur profile it means we r friends]",
+  "\n\n---\n__/\\_/\\_/\\_/\\_/\\_\nThis message was sent from my Compaq Presario\nWindows 95 rules!",
+  "\n\n---\n*NSYNC > BSB and thats FACTS\ndon't @ me (jk theres no @ yet lol)",
+  "\n\n---\n-=-=-=-=-=-=-=-=-=-\nI didn't choose the thug life\nThe thug life chose me\n-=-=-=-=-=-=-=-=-=-",
+  "\n\n---\nGet Paid To Surf The Web!\nwww.alladvantage.com/ref=xXcOoLgUyXx",
+  "\n\n---\n~*~*~*~*~*~*~*~*~*~\nWeBrInG: 90s KiDz UnItE\n[ << Prev | Random | Next >> ]\n~*~*~*~*~*~*~*~*~*~",
+];
+
+function getRandomSignature() {
+  return EMAIL_SIGNATURES[Math.floor(Math.random() * EMAIL_SIGNATURES.length)];
+}
+
+// ── Junk Mail / Atmosphere Emails ──
+const JUNK_TEMPLATES = [
+  { from: "AOL@aol.com", subject: "Welcome to AOL! Here's what's new", type: "junk",
+    body: "Dear Member,\n\nWelcome to America Online! Check out these cool new features:\n- AOL Instant Messenger (NEW!)\n- Improved email with 10 MB storage!\n- Over 200 chat rooms!\n\nKeyword: WHAT'S NEW\n\nSincerely,\nThe AOL Team" },
+  { from: "chatroom_bot@aol.com", subject: "You've been invited to: Teen Chat!!", type: "junk",
+    body: "You have been invited to join the chat room:\n\nTEEN CHAT\n\nCurrently 47 members online!\n\nTopics: music, homework, who's cuter - JTT or Leo?\n\nKeyword: TEEN CHAT" },
+  { from: "newsletter@aol.com", subject: "AOL Keyword of the Day: POKEMON", type: "junk",
+    body: "TODAY'S KEYWORD: POKEMON\n\nGotta catch 'em all! Visit AOL Keyword: POKEMON to trade tips, find cheat codes, and chat with other trainers!\n\nDid you know? There are 151 Pokemon to collect!\n\n- AOL Staff" },
+  { from: "deals@aol.com", subject: "FREE! 30-Day Trial of AOL Plus!", type: "junk",
+    body: "UPGRADE to AOL PLUS!\n\nGet FASTER speeds (up to 56k!!), MORE storage, and EXCLUSIVE content!\n\nFREE for 30 days! After trial, just $21.95/month.\n\nKeyword: AOL PLUS" },
+  { from: "webmaster@geocities.com", subject: "Your GeoCities page has 100 visitors!", type: "junk",
+    body: "Congratulations, Webmaster!\n\nYour page in the GeoCities neighborhood of 'Area51' has reached 100 visitors!\n\nKeep building your site with our NEW page builder!\n\nTip: Add a guestbook so visitors can leave messages!\n\n- GeoCities Team" },
+  { from: "offers@columbiahousecd.com", subject: "12 CDs for the price of 1! Limited time!", type: "junk",
+    body: "COLUMBIA HOUSE MUSIC CLUB\n\nGet 12 CDs for just $0.01 each!\n\nChoose from:\n- Spice Girls - Spice\n- Backstreet Boys - Millennium\n- TLC - CrazySexyCool\n- No Doubt - Tragic Kingdom\n\nJust buy 6 more at regular price over 2 years!\n\n(Ask your parents first)" },
+];
+
+const REACTION_TEMPLATES = [
+  { tone: "annoyed", templates: [
+    "omg STOP sending me these!!! I get like 10 a day",
+    "if u send me one more chain letter im blocking u",
+    "u know these are fake right?? bill gates isnt giving anyone money lol",
+  ]},
+  { tone: "grateful", templates: [
+    "thx!! i forwarded it to my whole class just in case :)",
+    "omg i sent this to 20 ppl and my crush called me that same night!!",
+    "i already got this one but i forwarded it again 2 b safe lol",
+  ]},
+  { tone: "casual", templates: [
+    "lol i already got this from like 3 other people",
+    "my mom says these r all fake but im not taking any chances",
+    "haha the clown statue one freaked me out so bad last time",
+  ]},
+  { tone: "scared", templates: [
+    "ok i forwarded it but now im scared to go to sleep :'(",
+    "DO U THINK THE CURSE IS REAL?? im freaking out",
+    "i broke one of these last week and my hamster died... probably a coincidence... right??",
+  ]},
+];
+
+function generateReactionEmail(contactSn) {
+  const group = REACTION_TEMPLATES[Math.floor(Math.random() * REACTION_TEMPLATES.length)];
+  const text = group.templates[Math.floor(Math.random() * group.templates.length)];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr = `${months[Math.floor(Math.random()*12)]} ${Math.floor(Math.random()*28)+1}, ${state.year}`;
+
+  return {
+    id: state.emailIdCounter++,
+    from: contactSn + '@aol.com',
+    subject: 'Re: ' + (group.tone === 'annoyed' ? 'STOP' : group.tone === 'scared' ? 'is this real??' : 'thx lol'),
+    date: dateStr,
+    read: false,
+    replied: true, // no action needed
+    type: 'reaction',
+    body: { origin: text, threat: '', promise: '', fwdCount: 0, curseAmount: 0, luckBonus: 0 },
+    fwdChain: '',
+    bgColor: '#ffffff',
+    fontColor: '#000000',
+    isReaction: true,
+  };
+}
+
+function generateJunkEmail() {
+  const tmpl = JUNK_TEMPLATES[Math.floor(Math.random() * JUNK_TEMPLATES.length)];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr = `${months[Math.floor(Math.random()*12)]} ${Math.floor(Math.random()*28)+1}, ${state.year}`;
+
+  return {
+    id: state.emailIdCounter++,
+    from: tmpl.from,
+    subject: tmpl.subject,
+    date: dateStr,
+    read: false,
+    replied: true, // no action needed
+    type: 'junk',
+    body: { origin: tmpl.body, threat: '', promise: '', fwdCount: 0, curseAmount: 0, luckBonus: 0 },
+    fwdChain: '',
+    bgColor: '#ffffff',
+    fontColor: '#333333',
+    isJunk: true,
+  };
+}
+
+// ── Mom Picked Up The Phone ──
+const DISCONNECT_REASONS = [
+  "MOM PICKED UP THE PHONE!",
+  "DAD NEEDS TO MAKE A CALL!",
+  "YOUR SISTER PICKED UP THE EXTENSION!",
+  "LIGHTNING KNOCKED OUT YOUR MODEM!",
+  "AOL IS EXPERIENCING HEAVY TRAFFIC!",
+];
+
+function triggerDisconnect() {
+  if (state.gameOver) return;
+  const screen = document.getElementById('disconnectScreen');
+  const reason = DISCONNECT_REASONS[Math.floor(Math.random() * DISCONNECT_REASONS.length)];
+  document.getElementById('disconnectText').textContent = reason;
+  document.getElementById('disconnectSubtext').textContent = 'Reconnecting...';
+  screen.classList.add('active');
+  try { playStaticSound(); } catch(e) {}
+
+  state.stamps = Math.max(0, state.stamps - 1);
+
+  setTimeout(() => {
+    document.getElementById('disconnectSubtext').textContent = 'ATDT 555-0199...';
+  }, 1500);
+
+  setTimeout(() => {
+    document.getElementById('disconnectSubtext').textContent = 'CONNECT 28800';
+    try { playDialupSound(); } catch(e) {}
+  }, 2500);
+
+  setTimeout(() => {
+    screen.classList.remove('active');
+    updateUI();
+    saveGame();
+  }, 4000);
+}
+
+function maybeDisconnect() {
+  if (state.gameOver) return;
+  if (Math.random() < 0.06) {
+    setTimeout(triggerDisconnect, 1000 + Math.random() * 2000);
+  }
 }
 
 // ── Confetti System ──
@@ -1462,6 +1958,9 @@ function generateNewLetters(count) {
       const fwdSender = SENDERS[Math.floor(Math.random() * SENDERS.length)];
       fwdChain += `<div class="fwd-header">---------- Forwarded by ${fwdSender}@aol.com ----------</div>\n`;
     }
+    // Append a random 90s email signature
+    fwdChain += '<pre style="font-size:11px; color:#666; margin-top:10px;">' +
+      getRandomSignature().replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') + '</pre>';
 
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const month = months[Math.floor(Math.random() * 12)];
@@ -1489,6 +1988,11 @@ function generateNewLetters(count) {
 
     state.lettersReceived++;
   }
+
+  // Mix in a junk mail ~40% of the time
+  if (Math.random() < 0.4) {
+    state.emails.splice(1, 0, generateJunkEmail());
+  }
 }
 
 function renderInbox() {
@@ -1499,7 +2003,8 @@ function renderInbox() {
   table.innerHTML = state.emails.map((email, idx) => {
     const icon = email.read ? '&#128233;' : '&#128232;';
     const badge = email.read ? '' : '<span class="new-badge">NEW!</span>';
-    const cls = `inbox-row${email.read ? '' : ' unread'}${email.replied ? ' replied' : ''}${!email.read && idx < 3 ? ' new-arrival' : ''}`;
+    const extraCls = email.isJunk ? ' junk-mail' : (email.isReaction ? ' reaction-mail' : '');
+    const cls = `inbox-row${email.read ? '' : ' unread'}${email.replied ? ' replied' : ''}${!email.read && idx < 3 ? ' new-arrival' : ''}${extraCls}`;
     return `<div class="${cls}" onclick="openEmail(${email.id})" style="${!email.read && idx < 3 ? 'animation-delay:'+idx*0.1+'s' : ''}">
       <span class="icon">${icon}</span>
       <span>${email.from}${badge}</span>
@@ -1530,36 +2035,49 @@ function openEmail(id) {
 
   const bodyEl = document.getElementById('emailBody');
   const b = email.body;
-  const effectiveFwd = Math.min(b.fwdCount, state.contacts.length);
-  bodyEl.innerHTML = `
-    <div class="chain-content" style="background:${email.bgColor}; color:${email.fontColor};">
-      <div class="origin-story">${b.origin.replace(/\n/g, '<br>')}</div>
-      <div class="threat">${b.threat}</div>
-      <div class="promise">${b.promise.replace(/\n/g, '<br>')}</div>
-      <p style="text-align:center; font-size:12px; margin-top:15px;">
-        &#9993; Forward this to at least <strong>${effectiveFwd}</strong> people! &#9993;
-      </p>
-    </div>
-    ${email.fwdChain}
-  `;
-
   const actionsEl = document.getElementById('emailActions');
-  if (email.replied) {
+
+  if (email.isJunk || email.isReaction) {
+    // Non-chain email: just show the text
+    bodyEl.innerHTML = `
+      <div style="padding:15px; font-size:14px; line-height:1.8; white-space:pre-wrap;">${b.origin.replace(/\n/g, '<br>')}</div>
+    `;
     actionsEl.innerHTML = `
       <button onclick="backToInbox()">&#128229; Back to Inbox</button>
-      <span style="color:#666; font-size:12px; padding:6px;">&#9989; You already handled this letter.</span>
+      <span style="color:#666; font-size:12px; padding:6px;">${email.isReaction ? '&#128172; Reply from a friend' : '&#128236; Junk mail'}</span>
     `;
   } else {
-    actionsEl.innerHTML = `
-      <button onclick="backToInbox()">&#128229; Back</button>
-      <button class="forward-btn" onclick="openForwardDialog()">&#9993; Forward (keep the chain!)</button>
-      <button class="break-btn" onclick="breakChain()">&#128465; Delete (break the chain)</button>
+    const effectiveFwd = Math.min(b.fwdCount, state.contacts.length);
+    bodyEl.innerHTML = `
+      <div class="chain-content" style="background:${email.bgColor}; color:${email.fontColor};">
+        <div class="origin-story">${b.origin.replace(/\n/g, '<br>')}</div>
+        <div class="threat">${b.threat}</div>
+        <div class="promise">${b.promise.replace(/\n/g, '<br>')}</div>
+        <p style="text-align:center; font-size:12px; margin-top:15px;">
+          &#9993; Forward this to at least <strong>${effectiveFwd}</strong> people! &#9993;
+        </p>
+      </div>
+      ${email.fwdChain}
     `;
+
+    if (email.replied) {
+      actionsEl.innerHTML = `
+        <button onclick="backToInbox()">&#128229; Back to Inbox</button>
+        <span style="color:#666; font-size:12px; padding:6px;">&#9989; You already handled this letter.</span>
+      `;
+    } else {
+      actionsEl.innerHTML = `
+        <button onclick="backToInbox()">&#128229; Back</button>
+        <button class="forward-btn" onclick="openForwardDialog()">&#9993; Forward (keep the chain!)</button>
+        <button class="break-btn" onclick="breakChain()">&#128465; Delete (break the chain)</button>
+      `;
+    }
   }
 
   renderInbox();
   updateUI();
   saveGame();
+  maybeShowPopupAd();
 }
 
 function backToInbox() {
@@ -1645,6 +2163,18 @@ function sendForward() {
   // Grant bonus stamps
   state.stamps += Math.floor(count / 3);
 
+  // Generate reaction replies from forwarded contacts
+  const forwardedSns = Array.from(checked).map(cb => cb.value);
+  if (Math.random() < 0.5 && forwardedSns.length > 0) {
+    const replySn = forwardedSns[Math.floor(Math.random() * forwardedSns.length)];
+    setTimeout(() => {
+      state.emails.unshift(generateReactionEmail(replySn));
+      playMailSound();
+      renderInbox();
+    }, 2000 + Math.random() * 3000);
+  }
+
+  maybeDisconnect();
   checkProgression();
 }
 
@@ -1671,6 +2201,8 @@ function breakChain() {
   }
 
   maybeShowClippy();
+  maybeDisconnect();
+  maybeShowPopupAd();
   checkProgression();
 }
 
@@ -1792,15 +2324,40 @@ function showAddressBook() {
   document.getElementById('inboxView').style.display = 'none';
   document.getElementById('addressBookView').classList.add('active');
   setActiveToolbarBtn('btnAddressBook');
-  document.querySelector('.address-book-header').textContent = '&#128209; My Buddy List / Address Book';
+  document.querySelector('.address-book-header').innerHTML = '&#128101; Buddy List (<span style="color:#0a0">' +
+    state.contacts.filter(c => getBuddyStatus(c) === 'online').length + ' online</span>)';
+
+  const online = state.contacts.filter(c => getBuddyStatus(c) === 'online');
+  const away = state.contacts.filter(c => getBuddyStatus(c) === 'away');
+  const offline = state.contacts.filter(c => getBuddyStatus(c) === 'offline');
 
   const list = document.getElementById('addressBookList');
-  list.innerHTML = state.contacts.map(c => `
-    <div class="contact-card">
-      <span><span class="sn">${c.sn}</span> (${c.name})</span>
-      <span class="status">Since ${c.year}</span>
-    </div>
-  `).join('');
+  let html = '';
+
+  if (online.length) {
+    html += '<div class="buddy-group-header">&#9679; Online (' + online.length + ')</div>';
+    online.forEach(c => {
+      html += `<div class="buddy-entry"><span class="buddy-status-dot online"></span><span class="buddy-sn">${c.sn}</span> <span style="font-size:11px;color:#666">(${c.name})</span></div>`;
+    });
+  }
+  if (away.length) {
+    html += '<div class="buddy-group-header">&#9675; Away (' + away.length + ')</div>';
+    away.forEach(c => {
+      html += `<div class="buddy-entry"><span class="buddy-status-dot away"></span><span class="buddy-sn away-sn">${c.sn}</span></div>`;
+      html += `<div class="buddy-away-msg">${getBuddyAwayMsg(c)}</div>`;
+    });
+  }
+  if (offline.length) {
+    html += '<div class="buddy-group-header">&#9675; Offline (' + offline.length + ')</div>';
+    offline.forEach(c => {
+      html += `<div class="buddy-entry"><span class="buddy-status-dot offline"></span><span class="buddy-sn offline-sn">${c.sn}</span></div>`;
+    });
+  }
+
+  list.innerHTML = html;
+
+  // Play door sound for flavor
+  try { playDoorOpen(); } catch(e) {}
 }
 
 function showStats() {
