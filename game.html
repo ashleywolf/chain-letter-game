@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHAIN MAIL - A 90s Chain Letter Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --aol-blue: #003399;
+  --aol-toolbar: #c0c0c0;
+  --aol-border-light: #ffffff;
+  --aol-border-dark: #808080;
+  --inbox-bg: #ffffff;
+  --selected-row: #000080;
+  --curse-red: #cc0000;
+  --luck-green: #009900;
+}
+
+body {
+  background: #008080;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  cursor: default;
+}
+
+/* ── Win95-style window ── */
+.window {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw; max-width: 900px;
+  height: 85vh;
+  background: var(--aol-toolbar);
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+}
+
+.title-bar {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: white;
+  padding: 3px 6px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.title-bar-buttons {
+  display: flex; gap: 2px;
+}
+
+.title-bar-buttons button {
+  width: 16px; height: 14px;
+  font-size: 9px;
+  background: var(--aol-toolbar);
+  border: 1px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  background: var(--aol-toolbar);
+  padding: 4px 8px;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--aol-border-dark);
+  flex-wrap: wrap;
+}
+
+.toolbar button {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 11px;
+  padding: 4px 12px;
+  background: var(--aol-toolbar);
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  cursor: pointer;
+}
+
+.toolbar button:active {
+  border-color: var(--aol-border-dark) var(--aol-border-light) var(--aol-border-light) var(--aol-border-dark);
+}
+
+.toolbar button:hover {
+  background: #d4d0c8;
+}
+
+.toolbar button.active {
+  background: #d4d0c8;
+  border-color: var(--aol-border-dark) var(--aol-border-light) var(--aol-border-light) var(--aol-border-dark);
+}
+
+/* ── Status bar ── */
+.status-bar {
+  background: var(--aol-toolbar);
+  border-top: 1px solid var(--aol-border-dark);
+  padding: 3px 8px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+.status-bar .curse-meter {
+  color: var(--curse-red);
+  font-weight: bold;
+}
+
+.status-bar .luck-meter {
+  color: var(--luck-green);
+  font-weight: bold;
+}
+
+/* ── Main content area ── */
+.main-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+/* ── Inbox view ── */
+.inbox-header {
+  background: #ffffcc;
+  padding: 6px 10px;
+  font-weight: bold;
+  font-size: 14px;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+}
+
+.inbox-table {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.inbox-row {
+  display: grid;
+  grid-template-columns: 30px 150px 1fr 100px;
+  padding: 4px 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  align-items: center;
+}
+
+.inbox-row:hover {
+  background: #e8e8ff;
+}
+
+.inbox-row.unread {
+  font-weight: bold;
+}
+
+.inbox-row.selected {
+  background: var(--selected-row);
+  color: white;
+}
+
+.inbox-row .icon {
+  font-size: 16px;
+}
+
+.inbox-row .date {
+  text-align: right;
+  font-size: 11px;
+  color: #666;
+}
+
+.inbox-row.selected .date {
+  color: #ccc;
+}
+
+/* ── Email view ── */
+.email-view {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.email-view.active {
+  display: flex;
+}
+
+.email-header-info {
+  padding: 10px 15px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ccc;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.email-header-info strong {
+  color: #333;
+}
+
+.email-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.email-body .chain-content {
+  padding: 15px;
+  margin: 10px 0;
+  border: 2px dashed #999;
+}
+
+.email-body .threat {
+  color: red;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+  margin: 15px 0;
+}
+
+.email-body .origin-story {
+  color: #660066;
+  font-style: italic;
+  margin: 10px 0;
+}
+
+.email-body .promise {
+  color: #006600;
+  font-weight: bold;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.email-body .fwd-header {
+  color: #666;
+  font-size: 11px;
+  margin: 8px 0 4px;
+}
+
+.email-actions {
+  padding: 10px 15px;
+  background: #f0f0f0;
+  border-top: 1px solid #ccc;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.email-actions button {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 13px;
+  padding: 6px 16px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  background: var(--aol-toolbar);
+}
+
+.email-actions button:hover {
+  background: #d4d0c8;
+}
+
+.email-actions button.forward-btn {
+  background: #ccffcc;
+}
+
+.email-actions button.break-btn {
+  background: #ffcccc;
+}
+
+.email-actions button.modify-btn {
+  background: #ccccff;
+}
+
+/* ── Forward dialog ── */
+.dialog-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 50;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-overlay.active {
+  display: flex;
+}
+
+.dialog {
+  background: var(--aol-toolbar);
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  width: 400px;
+  max-width: 90%;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+}
+
+.dialog .title-bar {
+  font-size: 12px;
+}
+
+.dialog-body {
+  padding: 15px;
+  overflow-y: auto;
+  background: white;
+}
+
+.dialog-body p {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.contact-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #999;
+  background: white;
+  margin: 8px 0;
+}
+
+.contact-item {
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-item:hover {
+  background: #e8e8ff;
+}
+
+.contact-item.selected {
+  background: var(--selected-row);
+  color: white;
+}
+
+.contact-item input[type="checkbox"] {
+  margin: 0;
+}
+
+.dialog-footer {
+  padding: 10px 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog-footer button {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 12px;
+  padding: 4px 20px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  background: var(--aol-toolbar);
+}
+
+/* ── Event popup ── */
+.event-popup {
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  background: var(--aol-toolbar);
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  width: 350px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+}
+
+.event-popup.active {
+  display: block;
+}
+
+.event-popup .title-bar {
+  font-size: 12px;
+}
+
+.event-popup-body {
+  padding: 20px;
+  text-align: center;
+  background: white;
+}
+
+.event-popup-body .event-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.event-popup-body .event-text {
+  font-size: 14px;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.event-popup-body button {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 13px;
+  padding: 6px 30px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+  background: var(--aol-toolbar);
+}
+
+/* ── Address book view ── */
+.address-book {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.address-book.active {
+  display: flex;
+}
+
+.address-book-header {
+  background: #ccffff;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 14px;
+  border-bottom: 1px solid #ccc;
+}
+
+.address-book-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.contact-card {
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.contact-card .sn {
+  font-weight: bold;
+  color: var(--aol-blue);
+}
+
+.contact-card .status {
+  font-size: 11px;
+  color: #999;
+}
+
+/* ── Intro / dial-up screen ── */
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: 'Courier New', monospace;
+}
+
+.intro-screen .logo {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.intro-screen .dialup-text {
+  font-size: 14px;
+  margin-bottom: 30px;
+  text-align: center;
+  line-height: 2;
+}
+
+.intro-screen .dialup-text .blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.intro-screen .progress-bar {
+  width: 300px;
+  height: 20px;
+  border: 2px solid #666;
+  background: #222;
+}
+
+.intro-screen .progress-fill {
+  height: 100%;
+  background: #00ff00;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.intro-screen .start-btn {
+  margin-top: 30px;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 18px;
+  padding: 10px 40px;
+  background: #ffcc00;
+  border: 3px outset #ffcc00;
+  cursor: pointer;
+  display: none;
+}
+
+/* ── Year banner ── */
+.year-banner {
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  background: #000080;
+  color: #ffff00;
+  padding: 30px 60px;
+  font-size: 36px;
+  font-weight: bold;
+  border: 4px solid #ffff00;
+  text-align: center;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.4);
+}
+
+.year-banner.active {
+  display: block;
+  animation: yearPop 0.5s ease-out;
+}
+
+@keyframes yearPop {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* ── Game over ── */
+.game-over {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 150;
+  background: white;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.game-over.active {
+  display: flex;
+}
+
+.game-over h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: var(--aol-blue);
+}
+
+.game-over .score-display {
+  font-size: 20px;
+  margin-bottom: 15px;
+}
+
+.game-over .ending-text {
+  font-size: 16px;
+  max-width: 500px;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.game-over button {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 16px;
+  padding: 10px 30px;
+  cursor: pointer;
+  background: #ffcc00;
+  border: 3px outset #ffcc00;
+}
+
+/* ── Marquee ── */
+.marquee {
+  background: #ffff00;
+  color: #cc0000;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee span {
+  display: inline-block;
+  animation: marqueeScroll 20s linear infinite;
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-200%); }
+}
+
+/* ── Visitor counter ── */
+.visitor-counter {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: black;
+  color: #00ff00;
+  padding: 2px 8px;
+  border: 1px inset #666;
+}
+
+/* scrollbar */
+.inbox-table::-webkit-scrollbar,
+.email-body::-webkit-scrollbar,
+.address-book-list::-webkit-scrollbar,
+.contact-list::-webkit-scrollbar {
+  width: 16px;
+}
+
+.inbox-table::-webkit-scrollbar-track,
+.email-body::-webkit-scrollbar-track,
+.address-book-list::-webkit-scrollbar-track,
+.contact-list::-webkit-scrollbar-track {
+  background: var(--aol-toolbar);
+  border: 1px solid #999;
+}
+
+.inbox-table::-webkit-scrollbar-thumb,
+.email-body::-webkit-scrollbar-thumb,
+.address-book-list::-webkit-scrollbar-thumb,
+.contact-list::-webkit-scrollbar-thumb {
+  background: var(--aol-toolbar);
+  border: 2px solid;
+  border-color: var(--aol-border-light) var(--aol-border-dark) var(--aol-border-dark) var(--aol-border-light);
+}
+</style>
+</head>
+<body>
+
+<!-- Intro screen -->
+<div class="intro-screen" id="introScreen">
+  <div class="logo">&#128231;</div>
+  <div class="dialup-text" id="dialupText"></div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <button class="start-btn" id="startBtn" onclick="startGame()">CHECK YOUR MAIL!</button>
+</div>
+
+<!-- Main game window -->
+<div class="window" id="gameWindow" style="display:none;">
+  <div class="title-bar">
+    <span>&#128231; ChainMail Online - <span id="currentYear">1995</span></span>
+    <div class="title-bar-buttons">
+      <button>_</button>
+      <button>&#9744;</button>
+      <button>X</button>
+    </div>
+  </div>
+
+  <div class="marquee">
+    <span>&#127775; Welcome to ChainMail Online! You have new messages! Forward your chain letters to keep the luck alive! &#127775; WARNING: Breaking chains may result in bad luck! &#127775;</span>
+  </div>
+
+  <div class="toolbar">
+    <button id="btnInbox" class="active" onclick="showInbox()">&#128229; Inbox</button>
+    <button id="btnAddressBook" onclick="showAddressBook()">&#128209; Address Book</button>
+    <button id="btnStats" onclick="showStats()">&#128202; My Stats</button>
+    <span style="flex:1"></span>
+    <span class="visitor-counter">Visitors: <span id="visitorCount">000482</span></span>
+  </div>
+
+  <div class="main-content">
+    <!-- Inbox list -->
+    <div id="inboxView">
+      <div class="inbox-header">
+        <span>&#128229; Inbox (<span id="unreadCount">0</span> unread)</span>
+        <span id="stampCount">&#128236; Stamps: 10</span>
+      </div>
+      <div class="inbox-table" id="inboxTable"></div>
+    </div>
+
+    <!-- Email view -->
+    <div class="email-view" id="emailView">
+      <div class="email-header-info" id="emailHeaderInfo"></div>
+      <div class="email-body" id="emailBody"></div>
+      <div class="email-actions" id="emailActions"></div>
+    </div>
+
+    <!-- Address book -->
+    <div class="address-book" id="addressBookView">
+      <div class="address-book-header">&#128209; My Buddy List / Address Book</div>
+      <div class="address-book-list" id="addressBookList"></div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span>&#128165; Curse: <span class="curse-meter" id="curseMeter">0%</span></span>
+    <span>&#127808; Luck: <span class="luck-meter" id="luckMeter">50</span></span>
+    <span>&#128200; Score: <span id="scoreDisplay">0</span></span>
+    <span>&#9993; Chains kept: <span id="chainsKept">0</span></span>
+  </div>
+</div>
+
+<!-- Forward dialog -->
+<div class="dialog-overlay" id="forwardDialog">
+  <div class="dialog">
+    <div class="title-bar">
+      <span>Forward Chain Letter</span>
+      <div class="title-bar-buttons"><button onclick="closeForwardDialog()">X</button></div>
+    </div>
+    <div class="dialog-body">
+      <p>Select <strong><span id="requiredForwards">5</span></strong> people to forward this chain letter to:</p>
+      <p style="font-size:11px; color:#666;">Cost: 1 stamp per person. You have <span id="dialogStamps">10</span> stamps.</p>
+      <div class="contact-list" id="forwardContactList"></div>
+      <p id="forwardWarning" style="color:red; font-size:12px; display:none;"></p>
+    </div>
+    <div class="dialog-footer">
+      <button onclick="sendForward()">&#9993; Send!</button>
+      <button onclick="closeForwardDialog()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event popup -->
+<div class="event-popup" id="eventPopup">
+  <div class="title-bar">
+    <span id="eventTitle">Something happened!</span>
+    <div class="title-bar-buttons"><button onclick="closeEventPopup()">X</button></div>
+  </div>
+  <div class="event-popup-body">
+    <div class="event-icon" id="eventIcon"></div>
+    <div class="event-text" id="eventText"></div>
+    <button onclick="closeEventPopup()">OK</button>
+  </div>
+</div>
+
+<!-- Year banner -->
+<div class="year-banner" id="yearBanner"></div>
+
+<!-- Game over -->
+<div class="game-over" id="gameOver">
+  <h1 id="gameOverTitle"></h1>
+  <div class="score-display" id="gameOverScore"></div>
+  <div class="ending-text" id="gameOverText"></div>
+  <button onclick="restartGame()">&#128260; Play Again</button>
+</div>
+
+<script>
+// ── Game State ──
+let state = {
+  year: 1995,
+  score: 0,
+  curse: 0,
+  luck: 50,
+  stamps: 10,
+  chainsKept: 0,
+  chainsBroken: 0,
+  emails: [],
+  contacts: [],
+  currentEmail: null,
+  emailIdCounter: 0,
+  lettersReceived: 0,
+  gameOver: false
+};
+
+// ── Contact Database ──
+const ALL_CONTACTS = [
+  // Starting contacts (1995)
+  { sn: "sk8erboi_95", name: "Tyler", year: 1995 },
+  { sn: "xXxAngelxXx", name: "Brittany", year: 1995 },
+  { sn: "coolguy2000", name: "Jason", year: 1995 },
+  { sn: "~*PrInCeSs*~", name: "Ashley", year: 1995 },
+  { sn: "baseballmike", name: "Mike", year: 1995 },
+  // 1996
+  { sn: "SuNfLoWeR_grl", name: "Heather", year: 1996 },
+  { sn: "N64master", name: "Brandon", year: 1996 },
+  { sn: "dolphinluvr", name: "Megan", year: 1996 },
+  { sn: "punkrockdude", name: "Kevin", year: 1996 },
+  // 1997
+  { sn: "SpIcEgIrL_97", name: "Jennifer", year: 1997 },
+  { sn: "tamagotchi_dad", name: "Chris", year: 1997 },
+  { sn: "LiLmAmA_xo", name: "Stephanie", year: 1997 },
+  { sn: "FFVIIfanatic", name: "Derek", year: 1997 },
+  { sn: "blink182fan", name: "Travis", year: 1997 },
+  // 1998
+  { sn: "BuFfY_SLaYeR", name: "Sarah", year: 1998 },
+  { sn: "y2k_survivor", name: "Alex", year: 1998 },
+  { sn: "TRL_4ever", name: "Christina", year: 1998 },
+  { sn: "napster_king", name: "Matt", year: 1998 },
+  // 1999
+  { sn: "millennium_bug", name: "Ryan", year: 1999 },
+  { sn: "AIM_aw4y_msg", name: "Nicole", year: 1999 },
+  { sn: "GeoCitiesAdmin", name: "Dave", year: 1999 },
+  { sn: "future_2000", name: "Amanda", year: 1999 },
+];
+
+// ── Chain Letter Templates ──
+const LETTER_TEMPLATES = [
+  {
+    subjects: [
+      "FW: FW: FW: FW: RE: GOOD LUCK!! DO NOT DELETE!!",
+      "Fw: Fw: Fw: URGENT!! READ THIS NOW!!",
+      "FW: FW: SEND THIS TO EVERYONE YOU KNOW!!!",
+    ],
+    bodies: [
+      {
+        origin: "This chain letter was started by a little girl named Sarah in Topeka, Kansas in 1987. She had a wish, and it came true 3 days after she sent this letter to 10 friends.",
+        threat: "!!! IF YOU DELETE THIS EMAIL YOU WILL HAVE BAD LUCK FOR 7 YEARS !!!",
+        promise: "Send this to 10 people and your crush will ask you out this Friday!!!",
+        fwdCount: 5,
+        curseAmount: 15,
+        luckBonus: 10,
+      },
+      {
+        origin: "A young boy in Michigan named Tommy sent this letter in 1992. He forgot to forward it and the next day he fell off his bike and broke both arms.",
+        threat: "BREAK THIS CHAIN AND SOMETHING TERRIBLE WILL HAPPEN TO YOU WITHIN 48 HOURS",
+        promise: "Forward this letter and you will receive a surprise in your mailbox within one week!",
+        fwdCount: 7,
+        curseAmount: 20,
+        luckBonus: 15,
+      },
+    ],
+    type: "luck",
+  },
+  {
+    subjects: [
+      "FW: Bill Gates is giving away money!!!!",
+      "Fw: Microsoft Email Tracking - FREE $$$$",
+      "FW: FW: AOL/Microsoft Merger - Get Paid to Forward!",
+    ],
+    bodies: [
+      {
+        origin: "Dear AOL user, Microsoft and AOL are running an email tracking test. For every person you forward this to, Bill Gates will donate $1 to charity AND send you a check for $5.",
+        threat: "This offer expires in 24 HOURS. If you delete this you will lose your chance FOREVER.",
+        promise: "Heather in Oregon forwarded this to 200 people and received a check for $1,000!!!",
+        fwdCount: 10,
+        curseAmount: 5,
+        luckBonus: 20,
+      },
+    ],
+    type: "scam",
+  },
+  {
+    subjects: [
+      "FW: VIRUS WARNING!!! VERY DANGEROUS!!!",
+      "Fw: Fw: URGENT VIRUS ALERT - DO NOT OPEN",
+      "FW: FW: FW: SULFNBK.EXE VIRUS - ACT NOW",
+    ],
+    bodies: [
+      {
+        origin: "There is a new virus being sent through email called GOOD TIMES. If you receive an email with the subject 'Good Times' DO NOT OPEN IT. It will erase your hard drive!!!",
+        threat: "If you do not forward this warning to EVERYONE in your address book, the virus WILL infect your computer and DESTROY ALL YOUR FILES.",
+        promise: "Forward this to protect your friends and family. IBM and AOL have confirmed this threat!",
+        fwdCount: 8,
+        curseAmount: 10,
+        luckBonus: 5,
+      },
+    ],
+    type: "hoax",
+  },
+  {
+    subjects: [
+      "Fw: Make a Wish!!! ~*~*~*~",
+      "FW: ~*~Angel Letter~*~ Pass it on",
+      "Fw: Fw: WISH UPON A STAR *~*~*~*",
+    ],
+    bodies: [
+      {
+        origin: "~*~*~An angel wrote this letter~*~*~\n\nClose your eyes and make a wish...\n\n...did you make it?\n\nNow open your eyes.",
+        threat: "If you break this angel chain, your wish will NEVER come true and you will have 3 years of loneliness.",
+        promise: "Send this to 5 people:\n1-3 people: your wish comes true in 1 year\n5 people: your wish comes true in 1 month\n10+ people: your wish comes true TOMORROW!",
+        fwdCount: 5,
+        curseAmount: 12,
+        luckBonus: 18,
+      },
+    ],
+    type: "wish",
+  },
+  {
+    subjects: [
+      "FW: THIS IS NOT A JOKE - MISSING CHILD",
+      "Fw: Fw: AMBER ALERT - PLEASE FORWARD",
+      "FW: HAVE YOU SEEN THIS CHILD???",
+    ],
+    bodies: [
+      {
+        origin: "PLEASE READ: A 7-year-old named Jessica has been missing from her home in Dallas, Texas since last Tuesday. She was last seen wearing a pink backpack and blue jeans.",
+        threat: "Please do not ignore this message. What if it was YOUR child?? Forward this to everyone. The more people who see this, the better chance we have of finding her.",
+        promise: "AOL has agreed to donate $0.05 for every person this is forwarded to, to help find Jessica.",
+        fwdCount: 10,
+        curseAmount: 8,
+        luckBonus: 12,
+      },
+    ],
+    type: "guilt",
+  },
+  {
+    subjects: [
+      "FW: FW: The Clown Statue - TRUE STORY!!!",
+      "Fw: Fw: SCARY!! The Babysitter Story",
+      "FW: DO NOT READ THIS AT NIGHT",
+    ],
+    bodies: [
+      {
+        origin: "A babysitter was watching two kids. She called the parents and asked if she could cover up the clown statue in the corner because it was creeping her out. The father said: 'Get the kids and get out of the house. We don't have a clown statue.'",
+        threat: "If you don't send this to 15 people, the clown will visit you tonight. A girl named Carla in Florida didn't forward it and she was never seen again.",
+        promise: "Forward this to 15 people and you will hear good news by midnight!",
+        fwdCount: 8,
+        curseAmount: 25,
+        luckBonus: 8,
+      },
+    ],
+    type: "scary",
+  },
+  {
+    subjects: [
+      "Fw: Fw: Friendship Poem ~*~LovE~*~",
+      "FW: ~*~Best Friends 4ever~*~ Send this back if I'm ur friend",
+      "Fw: How many REAL friends do u have??",
+    ],
+    bodies: [
+      {
+        origin: "A friend is someone who knows the song in your heart and can sing it back to you when you have forgotten the words.\n\nSend this to everyone you consider a friend, including the person who sent it to you.",
+        threat: "If you don't send this back to the person who sent it to you, it means you're not really their friend. :'(",
+        promise: "If you get this back 3 times, you are truly loved!!!\n1 back = you are liked\n3 back = you are loved\n5+ back = you are a TRUE friend",
+        fwdCount: 6,
+        curseAmount: 10,
+        luckBonus: 15,
+      },
+    ],
+    type: "friendship",
+  },
+  {
+    subjects: [
+      "FW: FW: FW: PRAYER CHAIN - DO NOT BREAK",
+      "Fw: This prayer has been around the world 7 times",
+      "FW: Send this prayer to 20 people NOW",
+    ],
+    bodies: [
+      {
+        origin: "This prayer chain was started by a missionary in South America in 1954. It has never been broken. Please do not be the one to break it.",
+        threat: "A man in Ohio broke this chain in 1987 and lost his job the next day. A woman in Texas broke it and her car was totaled. DO NOT BREAK THIS CHAIN.",
+        promise: "Send this to 20 people and something wonderful will happen to you at 11:11 PM tonight. A man in Florida sent it to 30 people and won $50,000 in the lottery the next week.",
+        fwdCount: 10,
+        curseAmount: 30,
+        luckBonus: 25,
+      },
+    ],
+    type: "prayer",
+  },
+];
+
+// ── Bad luck events ──
+const BAD_EVENTS = [
+  { icon: "&#128128;", text: "Your Tamagotchi died because you forgot to feed it." },
+  { icon: "&#128187;", text: "Your GeoCities page got a virus and all your GIFs are broken." },
+  { icon: "&#128148;", text: "Your crush changed their AIM away message to 'single and NOT looking.'" },
+  { icon: "&#128190;", text: "You accidentally deleted your book report that was due tomorrow." },
+  { icon: "&#128222;", text: "Your mom picked up the phone and killed your internet connection during a download at 99%." },
+  { icon: "&#127918;", text: "Your saved game file got corrupted. 47 hours of progress gone." },
+  { icon: "&#128123;", text: "You saw the clown statue move. It's probably nothing." },
+  { icon: "&#128556;", text: "You got a B- on your history test. Must be the curse." },
+  { icon: "&#128225;", text: "Your pager went off during class and you got detention." },
+  { icon: "&#128187;", text: "BonziBuddy installed itself on your computer again." },
+  { icon: "&#9889;", text: "Lightning struck your house during a thunderstorm. Your modem is fried." },
+  { icon: "&#128561;", text: "You heard the AOL 'Goodbye' sound but you didn't sign off..." },
+  { icon: "&#127829;", text: "The cafeteria ran out of pizza on Pizza Friday. This is your fault." },
+  { icon: "&#128247;", text: "Your disposable camera photos all came back blurry." },
+  { icon: "&#128251;", text: "Your favorite radio station changed format. No more TRL." },
+  { icon: "&#9888;", text: "FATAL ERROR: Your Neopet is starving and hates you now." },
+  { icon: "&#128566;", text: "Someone printed your AIM conversation and showed the whole class." },
+  { icon: "&#128293;", text: "Your mixtape got eaten by the cassette player." },
+];
+
+// ── Good luck events ──
+const GOOD_EVENTS = [
+  { icon: "&#127775;", text: "You found $5 in your old jeans pocket!" },
+  { icon: "&#128150;", text: "Your crush put a heart emoji next to your name on their buddy list!" },
+  { icon: "&#127870;", text: "Your mom made your favorite dinner tonight!" },
+  { icon: "&#127911;", text: "The new Backstreet Boys album leaked online early and you got it first!" },
+  { icon: "&#128187;", text: "Your download finished and the file isn't corrupted!" },
+  { icon: "&#127775;", text: "You got picked first in gym class!" },
+  { icon: "&#128230;", text: "You got a package from the Scholastic Book Fair!" },
+  { icon: "&#127918;", text: "Your friend is letting you borrow their N64 for the whole weekend!" },
+  { icon: "&#9733;", text: "Your GeoCities page was featured in a webring!" },
+  { icon: "&#128516;", text: "Snow day tomorrow! School is cancelled!" },
+];
+
+// ── Sender screen names ──
+const SENDERS = [
+  "LUVbug_99", "2cool4school", "soccer_star_11", "SkAtEr_PuNk",
+  "daddy_yankee_fan", "lil_miss_thang", "hotmail_hacker", "surfer_dude_CA",
+  "ChEeRlEaDeR_xo", "mystery_mailer", "chain_master_2000", "angel_baby_97",
+  "dark_poet_666", "rainbow_brite_grl", "y2k_panic", "FW_FW_FW_FW",
+];
+
+// ── Game Functions ──
+
+function initDialup() {
+  const lines = [
+    "Initializing modem...",
+    "ATDT 555-0199",
+    "CONNECT 28800",
+    "",
+    "Negotiating connection...",
+    "Verifying username: ChainMailUser",
+    "Password: ********",
+    "",
+    "Welcome to ChainMail Online!",
+    "You've got mail!",
+  ];
+
+  const textEl = document.getElementById('dialupText');
+  const progressEl = document.getElementById('progressFill');
+  let i = 0;
+
+  function nextLine() {
+    if (i < lines.length) {
+      textEl.innerHTML += lines[i] + '<br>';
+      progressEl.style.width = ((i + 1) / lines.length * 100) + '%';
+      i++;
+      setTimeout(nextLine, 400 + Math.random() * 600);
+    } else {
+      textEl.innerHTML += '<span class="blink">_</span>';
+      document.getElementById('startBtn').style.display = 'inline-block';
+    }
+  }
+  nextLine();
+}
+
+function startGame() {
+  document.getElementById('introScreen').style.display = 'none';
+  document.getElementById('gameWindow').style.display = 'flex';
+
+  // Load save or init
+  const saved = localStorage.getItem('chainLetterSave');
+  if (saved) {
+    try {
+      state = JSON.parse(saved);
+    } catch(e) {
+      initNewGame();
+    }
+  } else {
+    initNewGame();
+  }
+
+  state.contacts = ALL_CONTACTS.filter(c => c.year <= state.year);
+  updateUI();
+  generateNewLetters(3);
+  renderInbox();
+  showYearBanner(state.year);
+}
+
+function initNewGame() {
+  state = {
+    year: 1995,
+    score: 0,
+    curse: 0,
+    luck: 50,
+    stamps: 10,
+    chainsKept: 0,
+    chainsBroken: 0,
+    emails: [],
+    contacts: [],
+    currentEmail: null,
+    emailIdCounter: 0,
+    lettersReceived: 0,
+    gameOver: false,
+  };
+}
+
+function saveGame() {
+  localStorage.setItem('chainLetterSave', JSON.stringify(state));
+}
+
+function generateNewLetters(count) {
+  for (let i = 0; i < count; i++) {
+    const template = LETTER_TEMPLATES[Math.floor(Math.random() * LETTER_TEMPLATES.length)];
+    const subject = template.subjects[Math.floor(Math.random() * template.subjects.length)];
+    const body = template.bodies[Math.floor(Math.random() * template.bodies.length)];
+    const sender = SENDERS[Math.floor(Math.random() * SENDERS.length)];
+
+    const fwdDepth = Math.floor(Math.random() * 5) + 1;
+    let fwdChain = '';
+    for (let f = 0; f < fwdDepth; f++) {
+      const fwdSender = SENDERS[Math.floor(Math.random() * SENDERS.length)];
+      fwdChain += `<div class="fwd-header">---------- Forwarded by ${fwdSender}@aol.com ----------</div>\n`;
+    }
+
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const month = months[Math.floor(Math.random() * 12)];
+    const day = Math.floor(Math.random() * 28) + 1;
+    const dateStr = `${month} ${day}, ${state.year}`;
+
+    const bgColors = ['#ffffff', '#ffffcc', '#ffccff', '#ccffcc', '#ccccff', '#ffcccc'];
+    const fontColors = ['#000000', '#000080', '#800080', '#008000', '#800000', '#ff0000'];
+    const bgColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+    const fontColor = fontColors[Math.floor(Math.random() * fontColors.length)];
+
+    state.emails.unshift({
+      id: state.emailIdCounter++,
+      from: sender + '@aol.com',
+      subject: subject,
+      date: dateStr,
+      read: false,
+      replied: false,
+      type: template.type,
+      body: body,
+      fwdChain: fwdChain,
+      bgColor: bgColor,
+      fontColor: fontColor,
+    });
+
+    state.lettersReceived++;
+  }
+}
+
+function renderInbox() {
+  const table = document.getElementById('inboxTable');
+  const unread = state.emails.filter(e => !e.read).length;
+  document.getElementById('unreadCount').textContent = unread;
+
+  table.innerHTML = state.emails.map(email => {
+    const icon = email.read ? '&#128233;' : '&#128232;';
+    const cls = `inbox-row${email.read ? '' : ' unread'}${email.replied ? ' replied' : ''}`;
+    return `<div class="${cls}" onclick="openEmail(${email.id})">
+      <span class="icon">${icon}</span>
+      <span>${email.from}</span>
+      <span>${email.subject}</span>
+      <span class="date">${email.date}</span>
+    </div>`;
+  }).join('');
+}
+
+function openEmail(id) {
+  const email = state.emails.find(e => e.id === id);
+  if (!email) return;
+
+  email.read = true;
+  state.currentEmail = email;
+
+  document.getElementById('inboxView').style.display = 'none';
+  document.getElementById('addressBookView').classList.remove('active');
+  document.getElementById('emailView').classList.add('active');
+
+  const headerInfo = document.getElementById('emailHeaderInfo');
+  headerInfo.innerHTML = `
+    <div><strong>From:</strong> ${email.from}</div>
+    <div><strong>Date:</strong> ${email.date}</div>
+    <div><strong>Subject:</strong> ${email.subject}</div>
+  `;
+
+  const bodyEl = document.getElementById('emailBody');
+  const b = email.body;
+  bodyEl.innerHTML = `
+    <div class="chain-content" style="background:${email.bgColor}; color:${email.fontColor};">
+      <div class="origin-story">${b.origin.replace(/\n/g, '<br>')}</div>
+      <div class="threat">${b.threat}</div>
+      <div class="promise">${b.promise.replace(/\n/g, '<br>')}</div>
+      <p style="text-align:center; font-size:12px; margin-top:15px;">
+        &#9993; Forward this to at least <strong>${b.fwdCount}</strong> people! &#9993;
+      </p>
+    </div>
+    ${email.fwdChain}
+  `;
+
+  const actionsEl = document.getElementById('emailActions');
+  if (email.replied) {
+    actionsEl.innerHTML = `
+      <button onclick="backToInbox()">&#128229; Back to Inbox</button>
+      <span style="color:#666; font-size:12px; padding:6px;">&#9989; You already handled this letter.</span>
+    `;
+  } else {
+    actionsEl.innerHTML = `
+      <button onclick="backToInbox()">&#128229; Back</button>
+      <button class="forward-btn" onclick="openForwardDialog()">&#9993; Forward (keep the chain!)</button>
+      <button class="break-btn" onclick="breakChain()">&#128465; Delete (break the chain)</button>
+    `;
+  }
+
+  renderInbox();
+  updateUI();
+  saveGame();
+}
+
+function backToInbox() {
+  document.getElementById('emailView').classList.remove('active');
+  document.getElementById('inboxView').style.display = 'block';
+  state.currentEmail = null;
+}
+
+function openForwardDialog() {
+  const email = state.currentEmail;
+  if (!email) return;
+
+  document.getElementById('requiredForwards').textContent = email.body.fwdCount;
+  document.getElementById('dialogStamps').textContent = state.stamps;
+  document.getElementById('forwardWarning').style.display = 'none';
+
+  const list = document.getElementById('forwardContactList');
+  list.innerHTML = state.contacts.map(c =>
+    `<label class="contact-item">
+      <input type="checkbox" value="${c.sn}"> ${c.sn} (${c.name})
+    </label>`
+  ).join('');
+
+  document.getElementById('forwardDialog').classList.add('active');
+}
+
+function closeForwardDialog() {
+  document.getElementById('forwardDialog').classList.remove('active');
+}
+
+function sendForward() {
+  const email = state.currentEmail;
+  if (!email) return;
+
+  const checked = document.querySelectorAll('#forwardContactList input:checked');
+  const count = checked.length;
+  const required = email.body.fwdCount;
+  const warning = document.getElementById('forwardWarning');
+
+  if (count < required) {
+    warning.textContent = `You need to select at least ${required} people! (selected: ${count})`;
+    warning.style.display = 'block';
+    return;
+  }
+
+  if (count > state.stamps) {
+    warning.textContent = `Not enough stamps! You need ${count} but only have ${state.stamps}.`;
+    warning.style.display = 'block';
+    return;
+  }
+
+  // Forward success
+  state.stamps -= count;
+  state.chainsKept++;
+  state.score += email.body.luckBonus * 10;
+  state.luck = Math.min(100, state.luck + email.body.luckBonus);
+  state.curse = Math.max(0, state.curse - 5);
+  email.replied = true;
+
+  closeForwardDialog();
+  backToInbox();
+  updateUI();
+  saveGame();
+
+  // Maybe trigger good event
+  if (Math.random() < 0.4) {
+    setTimeout(() => triggerEvent('good'), 500);
+  }
+
+  // Grant bonus stamps
+  state.stamps += Math.floor(count / 3);
+
+  checkProgression();
+}
+
+function breakChain() {
+  const email = state.currentEmail;
+  if (!email) return;
+
+  state.chainsBroken++;
+  state.curse = Math.min(100, state.curse + email.body.curseAmount);
+  state.luck = Math.max(0, state.luck - Math.floor(email.body.curseAmount / 2));
+  state.score -= email.body.curseAmount * 5;
+  email.replied = true;
+
+  backToInbox();
+  updateUI();
+  saveGame();
+
+  // Trigger bad event based on curse level
+  const eventChance = 0.3 + (state.curse / 200);
+  if (Math.random() < eventChance) {
+    setTimeout(() => triggerEvent('bad'), 500);
+  }
+
+  checkProgression();
+}
+
+function triggerEvent(type) {
+  const events = type === 'bad' ? BAD_EVENTS : GOOD_EVENTS;
+  const event = events[Math.floor(Math.random() * events.length)];
+
+  document.getElementById('eventTitle').textContent =
+    type === 'bad' ? '&#128165; Bad Luck!' : '&#127775; Good Fortune!';
+  document.getElementById('eventIcon').innerHTML = event.icon;
+  document.getElementById('eventText').textContent = event.text;
+  document.getElementById('eventPopup').classList.add('active');
+
+  if (type === 'bad') {
+    state.score -= 50;
+    state.stamps = Math.max(0, state.stamps - 1);
+  } else {
+    state.score += 100;
+    state.stamps += 2;
+  }
+  updateUI();
+  saveGame();
+}
+
+function closeEventPopup() {
+  document.getElementById('eventPopup').classList.remove('active');
+}
+
+function checkProgression() {
+  const handled = state.chainsKept + state.chainsBroken;
+  const thresholds = { 1995: 5, 1996: 10, 1997: 16, 1998: 23 };
+
+  if (state.year < 1999 && handled >= thresholds[state.year]) {
+    state.year++;
+    state.contacts = ALL_CONTACTS.filter(c => c.year <= state.year);
+    state.stamps += 5;
+    generateNewLetters(3 + (state.year - 1995));
+    renderInbox();
+    showYearBanner(state.year);
+    updateUI();
+    saveGame();
+  }
+
+  // End game conditions
+  if (state.curse >= 100) {
+    endGame('curse');
+  } else if (state.year >= 1999 && handled >= 30) {
+    endGame('complete');
+  }
+}
+
+function showYearBanner(year) {
+  const banner = document.getElementById('yearBanner');
+  const messages = {
+    1995: "&#128187; 1995 &#128187;<br><span style='font-size:16px'>Welcome to the Internet!</span>",
+    1996: "&#127775; 1996 &#127775;<br><span style='font-size:16px'>Space Jam is in theaters!</span>",
+    1997: "&#128142; 1997 &#128142;<br><span style='font-size:16px'>The Spice Girls rule the world!</span>",
+    1998: "&#127918; 1998 &#127918;<br><span style='font-size:16px'>You've been online for 3 years!</span>",
+    1999: "&#9888; 1999 &#9888;<br><span style='font-size:16px'>Y2K is coming... forward EVERYTHING!</span>",
+  };
+  banner.innerHTML = messages[year] || year;
+  banner.classList.add('active');
+  document.getElementById('currentYear').textContent = year;
+  setTimeout(() => banner.classList.remove('active'), 2500);
+}
+
+function endGame(reason) {
+  state.gameOver = true;
+  const go = document.getElementById('gameOver');
+  const title = document.getElementById('gameOverTitle');
+  const score = document.getElementById('gameOverScore');
+  const text = document.getElementById('gameOverText');
+
+  score.innerHTML = `Final Score: ${state.score}<br>
+    Chains Kept: ${state.chainsKept} | Chains Broken: ${state.chainsBroken}<br>
+    Final Luck: ${state.luck} | Final Curse: ${state.curse}%`;
+
+  if (reason === 'curse') {
+    title.textContent = "YOUR INBOX HAS BEEN CURSED";
+    text.textContent = "You broke too many chains. Your computer caught a virus, your Neopets ran away, your GeoCities page was deleted, and your AIM buddy list is empty. The curse is real. Maybe you should have forwarded those letters after all.";
+  } else if (state.chainsKept > state.chainsBroken) {
+    title.textContent = "CHAIN LETTER CHAMPION!";
+    text.textContent = "You kept the chains alive and made it through the 90s with your inbox (and your luck) intact! Your friends think you're annoying, but at least you're not cursed. Bill Gates still hasn't sent that check though.";
+  } else {
+    title.textContent = "CHAIN BREAKER";
+    text.textContent = "You survived the 90s by ignoring most of the chain letters. Some of your friends stopped talking to you, but you saved a lot of stamps. You're pretty sure the curses weren't real. Pretty sure.";
+  }
+
+  go.classList.add('active');
+  localStorage.removeItem('chainLetterSave');
+}
+
+function restartGame() {
+  localStorage.removeItem('chainLetterSave');
+  location.reload();
+}
+
+function showInbox() {
+  document.getElementById('emailView').classList.remove('active');
+  document.getElementById('addressBookView').classList.remove('active');
+  document.getElementById('inboxView').style.display = 'block';
+  setActiveToolbarBtn('btnInbox');
+  renderInbox();
+}
+
+function showAddressBook() {
+  document.getElementById('emailView').classList.remove('active');
+  document.getElementById('inboxView').style.display = 'none';
+  document.getElementById('addressBookView').classList.add('active');
+  setActiveToolbarBtn('btnAddressBook');
+
+  const list = document.getElementById('addressBookList');
+  list.innerHTML = state.contacts.map(c => `
+    <div class="contact-card">
+      <span><span class="sn">${c.sn}</span> (${c.name})</span>
+      <span class="status">Since ${c.year}</span>
+    </div>
+  `).join('');
+}
+
+function showStats() {
+  document.getElementById('emailView').classList.remove('active');
+  document.getElementById('inboxView').style.display = 'none';
+  document.getElementById('addressBookView').classList.remove('active');
+  setActiveToolbarBtn('btnStats');
+
+  // Reuse address book view for stats
+  const view = document.getElementById('addressBookView');
+  view.classList.add('active');
+  const list = document.getElementById('addressBookList');
+  document.querySelector('.address-book-header').textContent = '&#128202; Your Chain Letter Stats';
+
+  list.innerHTML = `
+    <div style="padding:20px; font-size:14px; line-height:2;">
+      <p>&#128197; <strong>Year:</strong> ${state.year}</p>
+      <p>&#128200; <strong>Score:</strong> ${state.score}</p>
+      <p>&#128165; <strong>Curse Level:</strong> ${state.curse}%</p>
+      <p>&#127808; <strong>Luck:</strong> ${state.luck}</p>
+      <p>&#128236; <strong>Stamps:</strong> ${state.stamps}</p>
+      <p>&#9993; <strong>Chains Forwarded:</strong> ${state.chainsKept}</p>
+      <p>&#128465; <strong>Chains Broken:</strong> ${state.chainsBroken}</p>
+      <p>&#128233; <strong>Letters Received:</strong> ${state.lettersReceived}</p>
+      <p>&#128101; <strong>Contacts:</strong> ${state.contacts.length}</p>
+    </div>
+  `;
+}
+
+function setActiveToolbarBtn(id) {
+  document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateUI() {
+  document.getElementById('curseMeter').textContent = state.curse + '%';
+  document.getElementById('luckMeter').textContent = state.luck;
+  document.getElementById('scoreDisplay').textContent = state.score;
+  document.getElementById('chainsKept').textContent = state.chainsKept;
+  document.getElementById('stampCount').textContent = '&#128236; Stamps: ' + state.stamps;
+  document.getElementById('currentYear').textContent = state.year;
+
+  const vc = 482 + state.chainsKept * 37 + state.lettersReceived * 12;
+  document.getElementById('visitorCount').textContent = String(vc).padStart(6, '0');
+}
+
+// ── Init ──
+window.addEventListener('load', initDialup);
+</script>
+</body>
+</html>
