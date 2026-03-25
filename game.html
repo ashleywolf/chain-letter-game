@@ -1130,11 +1130,17 @@ const ALL_CONTACTS = [
   { sn: "coolguy2000", name: "Jason", year: 1995 },
   { sn: "~*PrInCeSs*~", name: "Ashley", year: 1995 },
   { sn: "baseballmike", name: "Mike", year: 1995 },
+  { sn: "surfer_CA_95", name: "Chad", year: 1995 },
+  { sn: "bookworm_grl", name: "Rachel", year: 1995 },
+  { sn: "soccer4life", name: "Danny", year: 1995 },
+  { sn: "LisaFrank_luv", name: "Katie", year: 1995 },
+  { sn: "bmx_rider_dude", name: "Zach", year: 1995 },
   // 1996
   { sn: "SuNfLoWeR_grl", name: "Heather", year: 1996 },
   { sn: "N64master", name: "Brandon", year: 1996 },
   { sn: "dolphinluvr", name: "Megan", year: 1996 },
   { sn: "punkrockdude", name: "Kevin", year: 1996 },
+  { sn: "MaRiO_KaRt_64", name: "Eric", year: 1996 },
   // 1997
   { sn: "SpIcEgIrL_97", name: "Jennifer", year: 1997 },
   { sn: "tamagotchi_dad", name: "Chris", year: 1997 },
@@ -1524,13 +1530,14 @@ function openEmail(id) {
 
   const bodyEl = document.getElementById('emailBody');
   const b = email.body;
+  const effectiveFwd = Math.min(b.fwdCount, state.contacts.length);
   bodyEl.innerHTML = `
     <div class="chain-content" style="background:${email.bgColor}; color:${email.fontColor};">
       <div class="origin-story">${b.origin.replace(/\n/g, '<br>')}</div>
       <div class="threat">${b.threat}</div>
       <div class="promise">${b.promise.replace(/\n/g, '<br>')}</div>
       <p style="text-align:center; font-size:12px; margin-top:15px;">
-        &#9993; Forward this to at least <strong>${b.fwdCount}</strong> people! &#9993;
+        &#9993; Forward this to at least <strong>${effectiveFwd}</strong> people! &#9993;
       </p>
     </div>
     ${email.fwdChain}
@@ -1565,7 +1572,8 @@ function openForwardDialog() {
   const email = state.currentEmail;
   if (!email) return;
 
-  document.getElementById('requiredForwards').textContent = email.body.fwdCount;
+  const effectiveFwd = Math.min(email.body.fwdCount, state.contacts.length);
+  document.getElementById('requiredForwards').textContent = effectiveFwd;
   document.getElementById('dialogStamps').textContent = state.stamps;
   document.getElementById('forwardWarning').style.display = 'none';
 
@@ -1589,7 +1597,7 @@ function sendForward() {
 
   const checked = document.querySelectorAll('#forwardContactList input:checked');
   const count = checked.length;
-  const required = email.body.fwdCount;
+  const required = Math.min(email.body.fwdCount, state.contacts.length);
   const warning = document.getElementById('forwardWarning');
 
   if (count < required) {
